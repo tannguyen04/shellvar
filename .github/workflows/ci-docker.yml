@@ -70,7 +70,7 @@ jobs:
 
   deploy-on-main:
     runs-on: ubuntu-latest
-    if: ${{ github.repository == 'refs/heads/feature/allow-run-as-container' }}
+    if: ${{ github.ref == 'refs/heads/feature/allow-run-as-container' }}
 
     steps:
       - name: Checkout code
