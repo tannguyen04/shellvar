@@ -42,7 +42,7 @@ jobs:
       - name: Test image
         run: dgoss run tannguyen04/shellvar:test-shellvar tail -f /dev/null
 
-  deploy-on-release:
+  deploy-on-release-tag:
     runs-on: ubuntu-latest
     needs:
       - build-and-test
@@ -70,8 +70,16 @@ jobs:
             echo "Month without zero: $month_without_zero"
             target_month="$year-$month"
             echo "Target month: $target_month"
-            release_count=$(curl -s "https://api.github.com/repos/tannguyen04/shellvar/releases" | \
-            jq -r --arg target_month "$target_month" '[.[] | select(.published_at | startswith($target_month)) | .tag_name] | length')
+          
+            response=$(curl -s "https://api.github.com/repos/tannguyen04/shellvar/releases")
+            # Check request success.
+            if [[ $(echo "$response" | jq -r .message) == "Not Found" ]]; then
+              echo "Repository does not existing."
+              exit 1
+            fi
+            # Count release.
+            release_count=$(echo "$response" | jq --arg YEAR "$year" --arg MONTH "$month" -r \
+            '. | map(select(.published_at | startswith("\($YEAR)-\($MONTH)"))) | length')
             echo "Number of releases in $target_month: $release_count"
         
             version="${year}.${month_without_zero}.${release_count}"
@@ -88,8 +96,7 @@ jobs:
             docker push tannguyen04/shellvar:latest
             docker push "tannguyen04/shellvar:${version}"
 
-
-  deploy-on-main:
+  deploy-on-push-main:
     runs-on: ubuntu-latest
     needs:
       - build-and-test
@@ -98,17 +105,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - uses: octokit/request-action@v2.x
-        id: get_latest_release
-        with:
-          route: GET /repos/{owner}/{repo}/releases/latest
-          owner: tannguyen04
-          repo: shellvar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: "echo latest release: '${{ steps.get_latest_release.outputs.data }}'"
 
       - name: Build Docker Images & Deploy
         run: |
