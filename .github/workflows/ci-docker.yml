@@ -1,4 +1,4 @@
-name: CI - Docker
+name: CI
 
 on:
   push:
@@ -34,13 +34,13 @@ jobs:
           version: 'v0.4.4'
 
       - name: Build image
-        run: docker build -t tannguyen04/shellvar:test-shellvar .
+        run: docker build -t "${GITHUB_REPOSITORY}:test-shellvar" .
 
       - name: Show images information
         run: docker images
 
       - name: Test image
-        run: dgoss run tannguyen04/shellvar:test-shellvar tail -f /dev/null
+        run: dgoss run "${GITHUB_REPOSITORY}:test-shellvar" tail -f /dev/null
 
   deploy-on-release-tag:
     runs-on: ubuntu-latest
@@ -61,15 +61,17 @@ jobs:
       - name: Build Docker Images & Deploy
         env:
           GITHUB_REF: ${{ github.ref }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-            response=$(curl -s "https://api.github.com/repos/tannguyen04/shellvar/releases")
+            # Count number of release base on year and month of HEAD.
+            year=$(git log -1 --format=%cd --date=format:%Y)
+            month=$(git log -1 --format=%cd --date=format:%m)
+            response=$(curl -s "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases")
             # Check request success.
             if [[ $(echo "$response" | jq -r .message) == "Not Found" ]]; then
               echo "Repository does not existing."
               exit 1
             fi
-            year=$(git log -1 --format=%cd --date=format:%Y)
-            month=$(git log -1 --format=%cd --date=format:%m)
             release_count=$(echo "$response" | jq --arg YEAR "$year" --arg MONTH "$month" -r \
             '. | map(select(.published_at | startswith("\($YEAR)-\($MONTH)"))) | length')
             echo "Number of releases in ${year}-${month}: $release_count"
@@ -81,15 +83,15 @@ jobs:
             echo "Version: $version"
             
             # Build images.
-            docker build -t tannguyen04/shellvar:latest .
-            docker build -t "tannguyen04/shellvar:${version}" .
+            docker build -t "${GITHUB_REPOSITORY}:latest" .
+            docker build -t "${GITHUB_REPOSITORY}:${version}" .
           
             # Show docker images
             docker images
           
             # Push docker to Docker Hub.
-            docker push tannguyen04/shellvar:latest
-            docker push "tannguyen04/shellvar:${version}"
+            docker push "${GITHUB_REPOSITORY}:latest"
+            docker push "${GITHUB_REPOSITORY}:${version}"
 
   deploy-on-push-main:
     runs-on: ubuntu-latest
@@ -102,8 +104,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker Images & Deploy
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          docker build -t tannguyen04/shellvar:canary .
+          docker build -t "${GITHUB_REPOSITORY}:canary" .
           # Show docker images
           docker images
 
