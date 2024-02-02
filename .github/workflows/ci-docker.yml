@@ -25,13 +25,13 @@ jobs:
           version: 'v0.4.4'
 
       - name: Build image
-        run: docker build -t drevops/shellvar:test-shellvar .
+        run: docker build -t tannguyen04/shellvar:test-shellvar .
 
       - name: Show images information
         run: docker images
 
       - name: Test image
-        run: dgoss run drevops/shellvar:test-shellvar tail -f /dev/null
+        run: dgoss run tannguyen04/shellvar:test-shellvar tail -f /dev/null
 
   deploy-on-tag:
     runs-on: ubuntu-latest
@@ -71,13 +71,13 @@ jobs:
             echo "Image version: $version"
             
             # Build images.
-            docker build -t drevops/shellvar:latest .
-            docker build -t "drevops/shellvar:${version}" .
+            docker build -t tannguyen04/shellvar:latest .
+            docker build -t "tannguyen04/shellvar:${version}" .
             # Show docker images
             docker images
             # Push docker to Docker Hub.
-            docker push drevops/shellvar:latest
-            docker push "drevops/shellvar:${version}"
+            docker push tannguyen04/shellvar:latest
+            docker push "tannguyen04/shellvar:${version}"
 
 
   deploy-on-main:
@@ -92,6 +92,6 @@ jobs:
 
       - name: Build Docker Images & Deploy
         run: |
-          docker build -t drevops/shellvar:canary .
+          docker build -t tannguyen04/shellvar:canary .
           # Show docker images
           docker images
