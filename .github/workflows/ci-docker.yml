@@ -62,28 +62,23 @@ jobs:
         env:
           GITHUB_REF: ${{ github.ref }}
         run: |
-            year=$(git log -1 --format=%cd --date=format:%y)
-            echo "Year: $year"
-            month=$(git log -1 --format=%cd --date=format:%m)
-            echo "Month: $month"
-            month_without_zero=$(git log -1 --format=%cd --date=format:%-m)
-            echo "Month without zero: $month_without_zero"
-            target_month="$year-$month"
-            echo "Target month: $target_month"
-          
             response=$(curl -s "https://api.github.com/repos/tannguyen04/shellvar/releases")
             # Check request success.
             if [[ $(echo "$response" | jq -r .message) == "Not Found" ]]; then
               echo "Repository does not existing."
               exit 1
             fi
-            # Count release.
+            year=$(git log -1 --format=%cd --date=format:%Y)
+            month=$(git log -1 --format=%cd --date=format:%m)
             release_count=$(echo "$response" | jq --arg YEAR "$year" --arg MONTH "$month" -r \
             '. | map(select(.published_at | startswith("\($YEAR)-\($MONTH)"))) | length')
-            echo "Number of releases in $target_month: $release_count"
-        
-            version="${year}.${month_without_zero}.${release_count}"
-            echo "Image version: $version"
+            echo "Number of releases in ${year}-${month}: $release_count"
+            
+            # Setup version name.
+            month_without_zero=$(git log -1 --format=%cd --date=format:%-m)
+            year_with_last_2_digital=$(git log -1 --format=%cd --date=format:%y)
+            version="${year_with_last_2_digital}.${month_without_zero}.${release_count}"
+            echo "Version: $version"
             
             # Build images.
             docker build -t tannguyen04/shellvar:latest .
