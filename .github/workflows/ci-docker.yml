@@ -43,6 +43,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build Docker Images & Deploy
         env:
           GITHUB_REF: ${{ github.ref }}
@@ -69,6 +75,10 @@ jobs:
             docker build -t "drevops/shellvar:${version}" .
             # Show docker images
             docker images
+            # Push docker to Docker Hub.
+            docker push drevops/shellvar:latest
+            docker push "drevops/shellvar:${version}"
+
 
   deploy-on-main:
     runs-on: ubuntu-latest
