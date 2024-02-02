@@ -103,3 +103,5 @@ jobs:
           docker build -t tannguyen04/shellvar:canary .
           # Show docker images
           docker images
+
+
