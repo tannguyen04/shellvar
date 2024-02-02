@@ -24,25 +24,6 @@ jobs:
         with:
           version: 'v0.4.4'
 
-      - name: Build Docker Image version name
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: |
-          echo "$GITHUB_CONTEXT"
-          year=$(git log -1 --format=%cd --date=format:%y)
-          echo "Year: $year"
-          month=$(git log -1 --format=%cd --date=format:%m)
-          echo "Month: $month"
-          target_month="$year-$month"
-          echo "Target month: $target_month"
-          # Get the list of tags with corresponding commit dates
-          git log --tags --simplify-by-decoration --pretty="format:%ci %d" | grep -E "tag:|commit" | awk '{print $1, $3}' > tag_dates.txt
-          # Filter tags within the target month
-          filtered_tags=$(awk -v month="$target_month" '$1 ~ month {print $2}' tag_dates.txt)
-          # Count the number of tags in the target month
-          number_of_tags=$(echo "$filtered_tags" | wc -l)
-          
-
       - name: Build image
         run: docker build -t drevops/shellvar:test-shellvar .
 
@@ -52,3 +33,51 @@ jobs:
       - name: Test image
         run: dgoss run drevops/shellvar:test-shellvar tail -f /dev/null
 
+  deploy-on-tag:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Images & Deploy
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+            year=$(git log -1 --format=%cd --date=format:%y)
+            echo "Year: $year"
+            month=$(git log -1 --format=%cd --date=format:%m)
+            echo "Month: $month"
+            month_without_zero=$(git log -1 --format=%cd --date=format:%-m)
+            echo "Month without zero: $month_without_zero"
+            target_month="$year-$month"
+            echo "Target month: $target_month"
+            # Get the list of tags with corresponding commit dates
+            git log --tags --simplify-by-decoration --pretty="format:%ci %d" | grep -E "tag:|commit" | awk '{print $1, $3}' > tag_dates.txt
+            # Filter tags within the target month
+            filtered_tags=$(awk -v month="$target_month" '$1 ~ month {print $2}' tag_dates.txt)
+            # Count the number of tags in the target month
+            number_of_tags=$(echo "$filtered_tags" | wc -l)
+            version="$year.month_without_zero.number_of_tags"
+            echo "Image version: $version"
+            
+            # Build images.
+            docker build -t drevops/shellvar:latest .
+            docker build -t "drevops/shellvar:${version}" .
+            # Show docker images
+            docker images
+
+  deploy-on-main:
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'refs/heads/feature/allow-run-as-container' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Images & Deploy
+        run: |
+          docker build -t drevops/shellvar:canary .
+          # Show docker images
+          docker images
