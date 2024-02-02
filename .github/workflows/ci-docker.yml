@@ -70,7 +70,7 @@ jobs:
             echo "Month without zero: $month_without_zero"
             target_month="$year-$month"
             echo "Target month: $target_month"
-            release_count=$(curl -s "https://api.github.com/repos/$repo_owner/$repo_name/releases" | \
+            release_count=$(curl -s "https://api.github.com/repos/tannguyen04/shellvar/releases" | \
             jq -r --arg target_month "$target_month" '[.[] | select(.published_at | startswith($target_month)) | .tag_name] | length')
             echo "Number of releases in $target_month: $release_count"
         
